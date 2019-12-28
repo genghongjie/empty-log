@@ -18,7 +18,7 @@ func main() {
 	logPath := "/data/logs"
 	taskCron := os.Getenv("cron")
 	if taskCron == "" {
-		taskCron = "0 * */1 * * ?"
+		taskCron = "0 */1 * * * ?"
 	}
 	log.Println("cron  is ", taskCron)
 	Init(logPath, taskCron)
@@ -84,11 +84,12 @@ func clean(logPath string) {
 		fileMaxSize = 2
 	}
 
-	fmt.Println("Folder max size  is ", folder_max_size, " GB")
-	fmt.Println("File max size  is ", file_max_size, " GB")
-
 	folderMaxSize *= 1073741824
 	fileMaxSize *= 1073741824
+
+	log.Printf("folderMaxSize %s ", UnitAndSizeWithKb(int64(folderMaxSize)))
+
+	log.Printf("fileMaxSize %s ", UnitAndSizeWithKb(int64(fileMaxSize)))
 
 	log.Printf("container logs path is %s", logPath)
 
@@ -96,7 +97,7 @@ func clean(logPath string) {
 	//文件夹大小
 	folderTotalSize, err := GetFolderSize(logPath)
 	if err == nil {
-		log.Printf("%s size is %f KB", logPath, round(float64(folderTotalSize)/(1<<10), 4))
+		log.Printf("%s size is %s ", logPath, UnitAndSizeWithKb(folderTotalSize))
 
 		if folderTotalSize > int64(folderMaxSize) {
 			//执行清理
@@ -126,7 +127,7 @@ func EmptyFileByFileMaxSize(pathname string, maxSize int64) error {
 			_ = EmptyFileByFileMaxSize(pathname+string(os.PathSeparator)+fi.Name(), maxSize)
 		} else {
 			if fi.Size() > maxSize {
-				log.Printf("%s will empty , length is %d Byte", pathname+string(os.PathSeparator)+fi.Name(), fi.Size())
+				log.Printf("%s will empty , length is %s ", pathname+string(os.PathSeparator)+fi.Name(), UnitAndSizeWithKb(fi.Size()))
 				command := ":> " + pathname + string(os.PathSeparator) + fi.Name()
 				cmd := exec.Command("sh", "-c", command)
 				bytes, err := cmd.Output()
@@ -137,7 +138,7 @@ func EmptyFileByFileMaxSize(pathname string, maxSize int64) error {
 					log.Println(resp)
 				}
 			} else {
-				log.Printf("[%s],length %d \n", pathname+string(os.PathSeparator)+fi.Name(), fi.Size())
+				log.Printf("[%s],size is  %s", pathname+string(os.PathSeparator)+fi.Name(), UnitAndSizeWithKb(fi.Size()))
 			}
 		}
 	}
@@ -153,11 +154,11 @@ func GetFolderSize(pathname string) (int64, error) {
 		if fi.IsDir() {
 			totalSizeTmp, _ := GetFolderSize(pathname + string(os.PathSeparator) + fi.Name())
 			totalSize = totalSize + totalSizeTmp
-			log.Printf("dir %s total size is  %d", fi.Name(), totalSizeTmp)
+			log.Printf("dir %s total size is  %s", fi.Name(), UnitAndSizeWithKb(totalSizeTmp))
 
 		} else {
 			totalSize = totalSize + fi.Size()
-			log.Printf("File %s  size is  %d", fi.Name(), fi.Size())
+			log.Printf("File %s  size is  %s", fi.Name(), UnitAndSizeWithKb(fi.Size()))
 		}
 	}
 	return totalSize, err
@@ -172,7 +173,7 @@ func EmptyLogFile(pathname string) error {
 			_ = EmptyLogFile(pathname + string(os.PathSeparator) + fi.Name())
 		} else {
 			if fi.Size() > 0 {
-				log.Printf("%s will empty , length is %d Byte", pathname+string(os.PathSeparator)+fi.Name(), fi.Size())
+				log.Printf("%s will empty , size is %s ", pathname+string(os.PathSeparator)+fi.Name(), UnitAndSizeWithKb(fi.Size()))
 				command := ":> " + pathname + string(os.PathSeparator) + fi.Name()
 				cmd := exec.Command("/bin/bash", "-c", command)
 				bytes, err := cmd.Output()
@@ -195,4 +196,30 @@ func round(f float64, n int) float64 {
 	n10 := math.Pow10(n)
 	return math.Trunc((f+0.5/n10)*n10) / n10
 
+}
+
+func UnitAndSizeWithKb(size int64) string {
+	if size < 1024 {
+		return fmt.Sprintf("%d %s", size, "byte")
+	}
+	size = size / 1024
+	if size < (1 << 10) {
+		return fmt.Sprintf("%f %s", float64(size), "KB")
+	} else if size < (1 << 20) {
+		totalCapacity := round(float64(size)/(1<<10), 4)
+		return fmt.Sprintf("%f %s", totalCapacity, "MB")
+	} else if size < (1 << 30) {
+		totalCapacity := round(float64(size)/(1<<20), 4)
+		return fmt.Sprintf("%f %s", totalCapacity, "GB")
+	} else if size < (1 << 40) {
+		totalCapacity := round(float64(size)/(1<<30), 4)
+		return fmt.Sprintf("%f %s", totalCapacity, "TB")
+	} else if size < (1 << 50) {
+		totalCapacity := round(float64(size)/(1<<40), 4)
+		return fmt.Sprintf("%f %s", totalCapacity, "PB")
+	} else if size < (1 << 60) {
+		totalCapacity := round(float64(size)/(1<<50), 4)
+		return fmt.Sprintf("%f %s", totalCapacity, "EB")
+	}
+	return fmt.Sprintf("%f %s", float64(size), "KB")
 }
