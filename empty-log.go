@@ -127,7 +127,7 @@ func EmptyFileByFileMaxSize(pathname string, maxSize int64) error {
 		} else {
 			if fi.Size() > maxSize {
 				log.Printf("%s will empty , length is %d Byte", pathname+string(os.PathSeparator)+fi.Name(), fi.Size())
-				command := "echo '' > " + pathname + string(os.PathSeparator) + fi.Name()
+				command := ":> " + pathname + string(os.PathSeparator) + fi.Name()
 				cmd := exec.Command("sh", "-c", command)
 				bytes, err := cmd.Output()
 				if err != nil {
@@ -173,7 +173,7 @@ func EmptyLogFile(pathname string) error {
 		} else {
 			if fi.Size() > 0 {
 				log.Printf("%s will empty , length is %d Byte", pathname+string(os.PathSeparator)+fi.Name(), fi.Size())
-				command := "echo '' > " + pathname + string(os.PathSeparator) + fi.Name()
+				command := ":> " + pathname + string(os.PathSeparator) + fi.Name()
 				cmd := exec.Command("/bin/bash", "-c", command)
 				bytes, err := cmd.Output()
 				if err != nil {
