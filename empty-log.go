@@ -18,9 +18,9 @@ func main() {
 	logPath := "/data/logs"
 	taskCron := os.Getenv("cron")
 	if taskCron == "" {
-		taskCron = "0 */1 * * * ?"
+		taskCron = "0 * */1 * * ?"
 	}
-	log.Println("cron  is ", taskCron)
+	log.Println("cron  is  ", taskCron)
 	Init(logPath, taskCron)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +63,9 @@ func Init(logPath, taskCron string) {
 }
 
 func clean(logPath string) {
+
+	log.Printf("定时任务开始执行:  ")
+
 	//文件夹最大阈值
 	folder_max_size := os.Getenv("folder_max_size")
 	if folder_max_size == "" {
@@ -93,7 +96,7 @@ func clean(logPath string) {
 
 	log.Printf("container logs path is %s", logPath)
 
-	log.Println("EmptyFileBy folder max size  begin:")
+	// log.Println("EmptyFileBy folder max size  begin:")
 	//文件夹大小
 	folderTotalSize, err := GetFolderSize(logPath)
 	if err == nil {
@@ -111,12 +114,14 @@ func clean(logPath string) {
 		log.Printf("GetFolderSize fail, %s", err.Error())
 	}
 
-	log.Println("EmptyFileByFileMaxSize begin:")
+	//log.Println("EmptyFileByFileMaxSize begin:")
 	//文件清理
 	err = EmptyFileByFileMaxSize(logPath, int64(fileMaxSize))
 	if err != nil {
 		log.Printf("EmptyFileByFileMaxSize fail ,%s", err.Error())
 	}
+
+	log.Printf("定时任务执行结束。 ")
 }
 
 func EmptyFileByFileMaxSize(pathname string, maxSize int64) error {
@@ -129,7 +134,10 @@ func EmptyFileByFileMaxSize(pathname string, maxSize int64) error {
 			if fi.Size() > maxSize {
 				log.Printf("%s will empty , length is %s ", pathname+string(os.PathSeparator)+fi.Name(), UnitAndSizeWithKb(fi.Size()))
 				command := ":> " + pathname + string(os.PathSeparator) + fi.Name()
+
+				log.Printf("command is %s", command)
 				cmd := exec.Command("sh", "-c", command)
+
 				bytes, err := cmd.Output()
 				if err != nil {
 					log.Println(err)
@@ -175,7 +183,8 @@ func EmptyLogFile(pathname string) error {
 			if fi.Size() > 0 {
 				log.Printf("%s will empty , size is %s ", pathname+string(os.PathSeparator)+fi.Name(), UnitAndSizeWithKb(fi.Size()))
 				command := ":> " + pathname + string(os.PathSeparator) + fi.Name()
-				cmd := exec.Command("/bin/bash", "-c", command)
+				log.Printf("command is %s", command)
+				cmd := exec.Command("sh", "-c", command)
 				bytes, err := cmd.Output()
 				if err != nil {
 					log.Println(err)
